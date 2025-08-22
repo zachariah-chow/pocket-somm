@@ -5,13 +5,25 @@
 
 declare module "sst" {
   export interface Resource {
+    "Listings": {
+      "name": string
+      "type": "sst.aws.Dynamo"
+    }
     "PocketSomme": {
       "type": "sst.aws.Nextjs"
       "url": string
     }
+    "Retailers": {
+      "name": string
+      "type": "sst.aws.Dynamo"
+    }
     "UploadsBucket": {
       "name": string
       "type": "sst.aws.Bucket"
+    }
+    "Wines": {
+      "name": string
+      "type": "sst.aws.Dynamo"
     }
   }
 }

@@ -10,9 +10,10 @@
     "lint": "eslint .",
     "typecheck": "tsc -b",
     "sst:init": "sst init",
-    "sst:dev": "sst dev",
+    "sst:dev": "sst dev --stage dev",
     "sst:deploy": "sst deploy",
-    "sst:remove": "sst remove"
+    "sst:remove": "sst remove",
+    "seed:dev": "node seed-run.js dev"
   },
   "keywords": [],
   "author": "",
@@ -30,6 +31,7 @@
     "eslint-plugin-react-hooks": "^5.2.0",
     "prettier": "^3.6.2",
     "sst": "^3.17.10",
+    "tsx": "^4.20.4",
     "typescript": "^5.9.2",
     "typescript-eslint": "^8.39.1"
   },

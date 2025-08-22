@@ -11,5 +11,5 @@
     "outDir": "dist",
     "types": []
   },
-  "include": ["src"]
+  "include": ["src", "sst-env.d.ts"]
 }
