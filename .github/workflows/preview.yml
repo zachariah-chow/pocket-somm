@@ -1,0 +1,42 @@
+name: Preview
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+jobs:
+  preview:
+    runs-on: ubuntu-latest
+    environment: dev # reuse dev role/vars
+    env:
+      AWS_REGION: ${{ vars.AWS_REGION }}
+      ROLE_ARN: ${{ vars.AWS_ROLE_ARN }}
+      SST_STAGE: pr-${{ github.event.number }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: 'pnpm'
+      - run: pnpm install --frozen-lockfile
+      - uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-region: ${{ env.AWS_REGION }}
+          role-to-assume: ${{ env.ROLE_ARN }}
+          role-session-name: pocketsomm-preview
+      - name: Deploy preview
+        run: pnpm sst deploy --stage $SST_STAGE
+      - name: Grab URL and comment on PR
+        id: out
+        run: |
+          URL=$(pnpm sst print --stage $SST_STAGE | grep -Eo 'https?://[^ ]+' | head -n1 || true)
+          echo "url=$URL" >> $GITHUB_OUTPUT
+      - uses: mshick/add-pr-comment@v2
+        with:
+          message: |
+            🚀 Preview deployed
+            Stage: `${{ env.SST_STAGE }}`
+            URL: ${{ steps.out.outputs.url || 'See logs for websiteUrl' }}

@@ -1,0 +1,12 @@
+{
+  "name": "@pocket-somm/app-api",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "esbuild src/index.ts --bundle --platform=node --target=node20 --outfile=dist/index.js"
+  },
+  "devDependencies": {
+    "esbuild": "^0.23.0"
+  }
+}
