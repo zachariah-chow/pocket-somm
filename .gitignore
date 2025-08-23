@@ -44,6 +44,7 @@ coverage/
 
 # --- Env & secrets
 .env
+.env.aws
 .env.local
 .env.*.local
 .env.*.secret

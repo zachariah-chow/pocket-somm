@@ -4,7 +4,7 @@ export default $config({
     return {
       name: 'pocket-somm',
       home: 'aws',
-      providers: { aws: { region: 'ap-southeast-1', profile: 'pocket-somme' } },
+      providers: { aws: { region: 'ap-southeast-1' } },
       removal: input?.stage === 'prod' ? 'retain' : 'remove',
     };
   },

@@ -2,49 +2,74 @@ name: Deploy
 
 on:
   push:
-    branches: [main] # → dev
-    tags: ['v*'] # → prod (e.g. v1.0.0)
-  workflow_dispatch:
-    inputs:
-      stage:
-        description: 'Optional SST stage override'
-        required: false
-        default: ''
+    branches: [main] # start with dev only; add tags later
+  workflow_dispatch: {}
+
+permissions:
+  id-token: write
+  contents: read
 
 jobs:
   deploy:
     runs-on: ubuntu-latest
-
-    # Pick environment based on ref (or manual input)
-    environment: ${{ startsWith(github.ref, 'refs/tags/v') && 'prod' || 'dev' }}
-
     env:
-      AWS_REGION: ${{ vars.AWS_REGION }}
-      ROLE_ARN: ${{ vars.AWS_ROLE_ARN }}
-      SST_STAGE: ${{ inputs.stage != '' && inputs.stage || (startsWith(github.ref, 'refs/tags/v') && 'prod' || 'dev') }}
+      SST_STAGE: dev
 
     steps:
       - uses: actions/checkout@v4
-
       - uses: pnpm/action-setup@v4
-
       - uses: actions/setup-node@v4
         with:
           node-version: 22
-          cache: 'pnpm'
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
 
-      - name: Install deps (workspace)
-        run: pnpm install --frozen-lockfile
+      - name: Debug vars
+        run: |
+          echo "ROLE=${{ vars.AWS_ROLE_ARN }}"
+          echo "REGION=${{ vars.AWS_REGION }}"
+
+      - id: idt
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const t = await core.getIDToken('sts.amazonaws.com')
+            core.setOutput('token', t)
+
+      - name: STS assume-role-with-web-identity (direct)
+        env:
+          ROLE: ${{ vars.AWS_ROLE_ARN }}
+          TOKEN: ${{ steps.idt.outputs.token }}
+        run: |
+          aws sts assume-role-with-web-identity \
+            --role-arn "$ROLE" \
+            --role-session-name debug-oidc \
+            --web-identity-token "$TOKEN" \
+            --duration-seconds 900
+
+      - name: Show OIDC claims
+        env:
+          T: ${{ steps.idt.outputs.token }}
+        run: |
+          python3 - <<'PY'
+          import os, json, base64
+          b = os.environ['T'].split('.')[1]
+          b += '=' * (-len(b) % 4)
+          claims = json.loads(base64.urlsafe_b64decode(b))
+          print(json.dumps({k: claims.get(k) for k in [
+            'iss','aud','repository','ref','sub','environment'
+          ]}, indent=2))
+          PY
 
       - name: Configure AWS (OIDC)
         uses: aws-actions/configure-aws-credentials@v4
         with:
-          aws-region: ${{ env.AWS_REGION }}
-          role-to-assume: ${{ env.ROLE_ARN }}
+          aws-region: ${{ vars.AWS_REGION }}
+          role-to-assume: ${{ vars.AWS_ROLE_ARN }}
           role-session-name: pocketsomm-deploy
+
+      - name: Who am I
+        run: aws sts get-caller-identity
 
       - name: Deploy (SST)
         run: pnpm sst deploy --stage $SST_STAGE
-
-      - name: Print outputs
-        run: pnpm sst print --stage $SST_STAGE
